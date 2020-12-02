@@ -20,7 +20,7 @@ import {
 import { CUSTOM_SCHEMA_REQUEST, CUSTOM_CONTENT_REQUEST, SchemaExtensionAPI } from './schema-extension-api';
 import { joinPath } from './paths';
 import { xhr, configure as configureHttpRequests, getErrorStatusDescription, XHRResponse } from 'request-light';
-import { getConflictingExtensions, showUninstallConflictsNotification } from './extensionConflicts';
+import { ansibleID, showDisableAnsibleNotification } from './extensionConflicts';
 
 export interface ISchemaAssociations {
   [pattern: string]: string[];
@@ -106,6 +106,10 @@ export function activate(context: ExtensionContext): SchemaExtensionAPI {
       client.sendNotification(SchemaAssociationNotification.type, getSchemaAssociations());
       findConflicts();
     });
+    workspace.onDidChangeConfiguration(() => {
+      // If a user updates one of their settings and its now conflicting
+      findConflicts();
+    });
     // Tell the server that the client is ready to provide custom schema content
     client.sendNotification(DynamicCustomSchemaRequestRegistration.type);
     // Tell the server that the client supports schema requests sent directly to it
@@ -138,13 +142,13 @@ export function activate(context: ExtensionContext): SchemaExtensionAPI {
 
 /**
  * Finds extensions that conflict with VSCode-YAML.
- * If one or more conflicts are found then show an uninstall notification
+ * If a conflict is found then show the correct notification
  * If no conflicts are found then do nothing
  */
 function findConflicts(): void {
-  const conflictingExtensions = getConflictingExtensions();
-  if (conflictingExtensions.length > 0) {
-    showUninstallConflictsNotification(conflictingExtensions);
+  const ansibleExt = extensions.getExtension(ansibleID);
+  if (ansibleExt) {
+    showDisableAnsibleNotification();
   }
 }
 

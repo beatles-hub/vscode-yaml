@@ -2,50 +2,26 @@
  *  Copyright (c) Red Hat, Inc. All rights reserved..
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { commands, Extension, extensions, window } from 'vscode';
+import { window, workspace } from 'vscode';
 
 // A set of VSCode extension ID's that conflict with VSCode-YAML
-const conflictingIDs = new Set(['vscoss.vscode-ansible']);
-
-/**
- * Get all of the installed extensions that currently conflict with VSCode-YAML
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getConflictingExtensions(): Extension<any>[] {
-  const conflictingExtensions = [];
-  conflictingIDs.forEach((extension) => {
-    const ext = extensions.getExtension(extension);
-    if (ext) {
-      conflictingExtensions.push(ext);
-    }
-  });
-  return conflictingExtensions;
-}
+export const ansibleID = 'vscoss.vscode-ansible';
 
 /**
  * Display the uninstall conflicting extension notification if there are any conflicting extensions currently installed
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function showUninstallConflictsNotification(conflictingExts: Extension<any>[]): void {
-  const uninstallMsg = 'Uninstall';
+export function showDisableAnsibleNotification(): void {
+  const disableMsg = 'Disable Ansible Validation';
+  const conflictMsg = 'VSCode Ansible validation is incompatible with VSCode-YAML validation. Please turn it off.';
+  const ansibleConfiguration = workspace.getConfiguration('ansible');
+  const validationID = 'validation';
+  const validationValue = ansibleConfiguration.get(validationID);
 
-  // Gather all the conflicting display names
-  let conflictMsg = '';
-  if (conflictingExts.length === 1) {
-    conflictMsg = `${conflictingExts[0].packageJSON.displayName} extension is incompatible with VSCode-YAML. Please uninstall it.`;
-  } else {
-    const extNames = [];
-    conflictingExts.forEach((ext) => {
-      extNames.push(ext.packageJSON.displayName);
+  // If the validationValue is true in the settings.json or undefined (hasn't been set yet) then show the disable notification
+  if (validationValue === undefined || validationValue === true) {
+    window.showInformationMessage(conflictMsg, disableMsg).then(() => {
+      ansibleConfiguration.update(validationID, false, true);
     });
-    conflictMsg = `The ${extNames.join(', ')} extensions are incompatible with VSCode-YAML. Please uninstall them.`;
   }
-
-  window.showInformationMessage(conflictMsg, uninstallMsg).then((clickedMsg) => {
-    if (clickedMsg === uninstallMsg) {
-      conflictingExts.forEach((ext) => {
-        commands.executeCommand('workbench.extensions.uninstallExtension', ext.id);
-      });
-    }
-  });
 }
